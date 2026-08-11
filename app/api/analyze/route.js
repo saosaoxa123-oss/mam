@@ -58,8 +58,13 @@ export async function POST(req) {
     });
 
     if (!res.ok) {
-      console.error("Anthropic loi:", res.status, await res.text());
-      return Response.json({ loi: "Dịch vụ đang bận. Thử lại sau ít giây." }, { status: 502 });
+      const chiTiet = await res.text();
+      console.error("Anthropic loi:", res.status, chiTiet);
+      let mo = chiTiet;
+      try {
+        mo = JSON.parse(chiTiet)?.error?.message || chiTiet;
+      } catch {}
+      return Response.json({ loi: `Lỗi ${res.status}: ${mo}` }, { status: 502 });
     }
 
     const data = await res.json();
