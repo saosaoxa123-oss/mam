@@ -1,9 +1,11 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Mâm",
-  description: "Chụp món, biết calo và đạm.",
+  title: "Mâm — chụp món, biết calo & đạm",
+  description: "Chụp bữa ăn, AI ước tính calo và đạm, lưu lại theo ngày.",
+  manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Mâm" },
+  icons: { apple: "/icon-192.png" },
 };
 
 export const viewport = {
