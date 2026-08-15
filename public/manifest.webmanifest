@@ -3,8 +3,8 @@
   "short_name": "Mâm",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#DCE3DA",
-  "theme_color": "#DCE3DA",
+  "background_color": "#F0EBE0",
+  "theme_color": "#F0EBE0",
   "orientation": "portrait",
   "lang": "vi",
   "icons": [

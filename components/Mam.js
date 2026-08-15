@@ -15,6 +15,7 @@ import {
 } from "../lib/kho";
 import { MUC_TIEU, tim } from "../lib/dinhduong";
 import HoSo from "./HoSo";
+import { DauMuc, Icon, Logo } from "./Nhan";
 
 const TOI_DA_ANH = 4;
 
@@ -36,7 +37,7 @@ function thuNho(dataURL, canh = 96) {
   });
 }
 
-const MAU = { dam: "#5E8F7E", carb: "#C4952F", beo: "#B8402C" };
+const MAU = { dam: "var(--dam)", carb: "var(--carb)", beo: "var(--beo)" };
 
 const BUOI = [
   { ma: "sang", ten: "Sáng", tu: 4, den: 10 },
@@ -91,7 +92,7 @@ function VongMam({ pcCalo, con, qua, daAn, mucTieu }) {
           cy="104"
           r={R}
           strokeWidth="11"
-          stroke={qua ? "#B8402C" : "#C4952F"}
+          stroke={qua ? "var(--son)" : "var(--vang)"}
           strokeDasharray={C}
           strokeDashoffset={C - (C * Math.min(100, pcCalo)) / 100}
         />
@@ -123,7 +124,7 @@ function ThanhMacro({ ten, an, dich, mau }) {
         </span>
       </div>
       <div className="tm-ray">
-        <i style={{ width: pc + "%", background: vuot ? "#B8402C" : mau }} />
+        <i style={{ width: pc + "%", background: vuot ? "var(--son)" : mau }} />
       </div>
     </div>
   );
@@ -325,12 +326,15 @@ export default function Mam() {
       )
     : null;
 
-  const mauTinCay = { cao: "#5E8F7E", "trung bình": "#C4952F", thấp: "#B8402C" };
+  const mauTinCay = { cao: "var(--tot)", "trung bình": "var(--canh)", thấp: "var(--nguy)" };
 
   return (
     <div className="khung">
       <div className="dau">
-        <div className="hieu">MÂM</div>
+        <div className="nhan-hieu">
+          <Logo size={27} />
+          <span className="hieu">Mâm</span>
+        </div>
         <div className="ngay-chu">{hnay}</div>
       </div>
 
@@ -338,9 +342,7 @@ export default function Mam() {
       <div className="mam-tam">
         {chuoi > 1 && (
           <div className="chuoi" title={`${chuoi} ngày ghi liên tiếp`}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2c0 4-5 5-5 10a5 5 0 0 0 10 0c0-2-1-3-2-4 0 1-1 2-2 2s-1-1-1-2c0-3 0-5 0-6z" />
-            </svg>
+            <Icon.Lua />
             {chuoi} ngày
           </div>
         )}
@@ -352,9 +354,9 @@ export default function Mam() {
           mucTieu={mucTieu.calo}
         />
         <div className="hang-macro">
-          <ThanhMacro ten="Đạm" an={tongDam} dich={mucTieu.protein} mau="#5E8F7E" />
-          <ThanhMacro ten="Carb" an={tongCarb} dich={dichCarb} mau="#C4952F" />
-          <ThanhMacro ten="Béo" an={tongFat} dich={dichBeo} mau="#C97B4A" />
+          <ThanhMacro ten="Đạm" an={tongDam} dich={mucTieu.protein} mau="var(--dam)" />
+          <ThanhMacro ten="Carb" an={tongCarb} dich={dichCarb} mau="var(--carb)" />
+          <ThanhMacro ten="Béo" an={tongFat} dich={dichBeo} mau="var(--beo)" />
         </div>
       </div>
 
@@ -378,6 +380,7 @@ export default function Mam() {
         </div>
       ) : (
         <button className="moi" onClick={() => setMoHoSo(true)}>
+          <Icon.Nguoi width={19} height={19} />
           <div className="moi-chu">
             <div className="moi-ten">Đặt mục tiêu cho riêng bạn</div>
             <div className="moi-mo">
@@ -402,10 +405,7 @@ export default function Mam() {
 
       {trangThai === "cho" && (
         <button className="nut rong" onClick={() => oFile.current?.click()}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-            <circle cx="12" cy="13" r="4" />
-          </svg>
+          <Icon.MayAnh width={18} height={18} strokeWidth={2} />
           Chụp món ăn
         </button>
       )}
@@ -491,12 +491,16 @@ export default function Mam() {
         <div style={{ marginTop: 24 }}>
           {ketQua.mon?.length ? (
             <>
-              <div className="de-muc" style={{ margin: "0 0 2px" }}>
-                <span className="eyebrow">Nhìn thấy</span>
-                <span className="so" style={{ fontSize: 15, fontWeight: 700 }}>
-                  {kqTong.calo} kcal
-                </span>
-              </div>
+              <DauMuc
+                icon={Icon.Muc}
+                phai={
+                  <span className="so" style={{ fontSize: 15, fontWeight: 700 }}>
+                    {kqTong.calo} kcal
+                  </span>
+                }
+              >
+                Nhìn thấy
+              </DauMuc>
 
               {ketQua.mon.map((m, i) => (
                 <div className="mon" key={i} style={{ animationDelay: i * 0.05 + "s" }}>
@@ -519,9 +523,7 @@ export default function Mam() {
                 </div>
               ))}
 
-              <div className="de-muc" style={{ margin: "22px 0 0" }}>
-                <span className="eyebrow">Bạn ăn bao nhiêu phần</span>
-              </div>
+              <DauMuc icon={Icon.DongHo}>Bạn ăn bao nhiêu phần</DauMuc>
               <div className="khay">
                 {[0.5, 1, 1.5, 2].map((p) => (
                   <button key={p} data-chon={phan === p ? 1 : 0} onClick={() => setPhan(p)}>
@@ -534,7 +536,7 @@ export default function Mam() {
                 <div className="tin-cay">
                   <span
                     className="cham-tc"
-                    style={{ background: mauTinCay[ketQua.tincay] || "#C4952F" }}
+                    style={{ background: mauTinCay[ketQua.tincay] || "var(--canh)" }}
                   />
                   <span>
                     Độ tin cậy {ketQua.tincay}
@@ -564,14 +566,18 @@ export default function Mam() {
       )}
 
       {/* ── khung bữa: luôn hiện đủ 4 buổi ── */}
-      <div className="de-muc">
-        <span className="eyebrow">Hôm nay</span>
-        {tongCalo > 0 && (
-          <span className="so" style={{ fontSize: 13, fontWeight: 700 }}>
-            {tongCalo} kcal
-          </span>
-        )}
-      </div>
+      <DauMuc
+        icon={Icon.Bat}
+        phai={
+          tongCalo > 0 ? (
+            <span className="so" style={{ fontSize: 13, fontWeight: 700 }}>
+              {tongCalo} kcal
+            </span>
+          ) : null
+        }
+      >
+        Hôm nay
+      </DauMuc>
 
       {BUOI.map((b) => {
         const mon = nhatKy.filter((m) => buoiCua(m.gio).ma === b.ma);
@@ -628,17 +634,13 @@ export default function Mam() {
 
       {tongCalo > 0 && (
         <div style={{ marginTop: 24 }}>
-          <div className="eyebrow" style={{ marginBottom: 8 }}>
-            Cả ngày lấy calo từ đâu
-          </div>
+          <DauMuc icon={Icon.La}>Cả ngày lấy calo từ đâu</DauMuc>
           <DaiMacro p={tongDam} c={tongCarb} f={tongFat} chuThich />
         </div>
       )}
 
       {/* ── tuần ── */}
-      <div className="de-muc">
-        <span className="eyebrow">7 ngày qua</span>
-      </div>
+      <DauMuc icon={Icon.Cot}>7 ngày qua</DauMuc>
       <div className="tuan-boc">
         <div className="tuan">
           <div className="vach-dich" style={{ bottom: (mucTieu.calo / dinhTuan) * 100 + "%" }}>
