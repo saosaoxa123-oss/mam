@@ -279,6 +279,17 @@ export default function Mam() {
     dungLai();
   };
 
+  const nhanHoSo = ({ hoSo: hsMoi, mucTieu: mt, tuVan: tv }) => {
+    setHoSo(hsMoi);
+    if (tv) setTuVan(tv);
+    if (mt) {
+      const moi = { calo: mt.calo, protein: mt.dam, carb: mt.carb, beo: mt.beo };
+      setMucTieu(moi);
+      ghiMucTieu(moi);
+    }
+    setMoHoSo(false);
+  };
+
   const dungLai = () => {
     setAnhs([]);
     setMoTa("");
