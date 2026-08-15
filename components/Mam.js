@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import {
   bayNgay,
+  chuoiNgay,
+  donKho,
   docHoSo,
   docMucTieu,
   docNgay,
@@ -15,6 +17,24 @@ import { MUC_TIEU, tim } from "../lib/dinhduong";
 import HoSo from "./HoSo";
 
 const TOI_DA_ANH = 4;
+
+// ảnh thu nhỏ lưu kèm món, để nhật ký nhìn lại biết mình đã ăn gì
+function thuNho(dataURL, canh = 96) {
+  return new Promise((ok) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas");
+      c.width = c.height = canh;
+      const ti = Math.max(canh / img.width, canh / img.height);
+      const w = img.width * ti;
+      const h = img.height * ti;
+      c.getContext("2d").drawImage(img, (canh - w) / 2, (canh - h) / 2, w, h);
+      ok(c.toDataURL("image/jpeg", 0.6));
+    };
+    img.onerror = () => ok(null);
+    img.src = dataURL;
+  });
+}
 
 const MAU = { dam: "#5E8F7E", carb: "#C4952F", beo: "#B8402C" };
 
@@ -54,42 +74,56 @@ function nenAnh(file) {
   });
 }
 
-/* Vòng mâm: cung ngoài = calo, cung trong = đạm */
-function VongMam({ pcCalo, pcDam, con, qua }) {
-  const R1 = 74;
-  const R2 = 58;
-  const C1 = 2 * Math.PI * R1;
-  const C2 = 2 * Math.PI * R2;
-  const kt = 186;
+/* Vòng mâm: cung calo, số ở giữa co lại theo độ dài để không chạm viền */
+function VongMam({ pcCalo, con, qua, daAn, mucTieu }) {
+  const R = 82;
+  const C = 2 * Math.PI * R;
+  const kt = 208;
+  const soChu = String(Math.abs(con)).length;
+  const cỡ = soChu >= 4 ? 40 : soChu === 3 ? 48 : 54;
   return (
     <div className="vong-boc" style={{ height: kt }}>
-      <svg className="vong" width={kt} height={kt} viewBox="0 0 186 186" aria-hidden="true">
-        <circle className="ray" cx="93" cy="93" r={R1} strokeWidth="9" />
+      <svg className="vong" width={kt} height={kt} viewBox="0 0 208 208" aria-hidden="true">
+        <circle className="ray" cx="104" cy="104" r={R} strokeWidth="11" />
         <circle
           className="chay"
-          cx="93"
-          cy="93"
-          r={R1}
-          strokeWidth="9"
+          cx="104"
+          cy="104"
+          r={R}
+          strokeWidth="11"
           stroke={qua ? "#B8402C" : "#C4952F"}
-          strokeDasharray={C1}
-          strokeDashoffset={C1 - (C1 * Math.min(100, pcCalo)) / 100}
-        />
-        <circle className="ray" cx="93" cy="93" r={R2} strokeWidth="5" />
-        <circle
-          className="chay"
-          cx="93"
-          cy="93"
-          r={R2}
-          strokeWidth="5"
-          stroke="#5E8F7E"
-          strokeDasharray={C2}
-          strokeDashoffset={C2 - (C2 * Math.min(100, pcDam)) / 100}
+          strokeDasharray={C}
+          strokeDashoffset={C - (C * Math.min(100, pcCalo)) / 100}
         />
       </svg>
       <div className="giua">
-        <div className={"con" + (qua ? " qua" : "")}>{Math.abs(con)}</div>
+        <div className={"con" + (qua ? " qua" : "")} style={{ fontSize: cỡ }}>
+          {Math.abs(con)}
+        </div>
         <div className="nhan-con">{qua ? "kcal vượt" : "kcal còn lại"}</div>
+        <div className="da-an">
+          {daAn} / {mucTieu} đã ăn
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Ba thanh macro trong tấm mâm */
+function ThanhMacro({ ten, an, dich, mau }) {
+  const pc = dich > 0 ? Math.min(100, (an / dich) * 100) : 0;
+  const vuot = an > dich && dich > 0;
+  return (
+    <div className="tm">
+      <div className="tm-tren">
+        <span className="tm-ten">{ten}</span>
+        <span className="tm-so so">
+          {an}
+          <small>/{dich}g</small>
+        </span>
+      </div>
+      <div className="tm-ray">
+        <i style={{ width: pc + "%", background: vuot ? "#B8402C" : mau }} />
       </div>
     </div>
   );
@@ -144,6 +178,8 @@ export default function Mam() {
   const [hoSo, setHoSo] = useState(null);
   const [tuVan, setTuVan] = useState(null);
   const [moHoSo, setMoHoSo] = useState(false);
+  const [chuoi, setChuoi] = useState(0);
+  const [bao, setBao] = useState("");
   const oFile = useRef(null);
 
   useEffect(() => {
@@ -152,6 +188,8 @@ export default function Mam() {
     setTuan(bayNgay());
     setHoSo(docHoSo());
     setTuVan(docTuVan());
+    setChuoi(chuoiNgay());
+    donKho();
     setDaTai(true);
     if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
   }, []);
@@ -160,6 +198,12 @@ export default function Mam() {
     setNhatKy(ds);
     ghiNgay(ds);
     setTuan(bayNgay());
+    setChuoi(chuoiNgay());
+  };
+
+  const hienBao = (chu) => {
+    setBao(chu);
+    setTimeout(() => setBao(""), 2600);
   };
 
   const themAnh = async (e) => {
@@ -215,9 +259,10 @@ export default function Mam() {
     }
   };
 
-  const luuVaoNhatKy = () => {
+  const luuVaoNhatKy = async () => {
     if (!ketQua?.mon?.length) return;
     const gio = gioBayGio();
+    const thumb = anhs[0] ? await thuNho(anhs[0]) : null;
     const them = ketQua.mon.map((m, i) => ({
       id: Date.now() + "-" + i,
       ten: m.ten,
@@ -226,20 +271,11 @@ export default function Mam() {
       carb: Math.round((m.carb || 0) * phan),
       fat: Math.round((m.fat || 0) * phan),
       gio,
+      thumb: i === 0 ? thumb : null,
     }));
     capNhat([...nhatKy, ...them]);
+    hienBao(`Đã lưu ${them.length} món · ${them.reduce((t, m) => t + m.calo, 0)} kcal`);
     dungLai();
-  };
-
-  const nhanHoSo = ({ hoSo: hsMoi, mucTieu: mt, tuVan: tv }) => {
-    setHoSo(hsMoi);
-    if (tv) setTuVan(tv);
-    if (mt) {
-      const moi = { calo: mt.calo, protein: mt.dam };
-      setMucTieu(moi);
-      ghiMucTieu(moi);
-    }
-    setMoHoSo(false);
   };
 
   const dungLai = () => {
@@ -260,16 +296,22 @@ export default function Mam() {
   const qua = con < 0;
   const dinhTuan = Math.max(...tuan.map((d) => d.calo), mucTieu.calo, 1);
 
+  // đích carb/béo: lấy từ hồ sơ nếu có, không thì suy ra tỉ lệ mặc định
+  const dichCarb = mucTieu.carb || Math.round((mucTieu.calo * 0.45) / 4);
+  const dichBeo = mucTieu.beo || Math.round((mucTieu.calo * 0.28) / 9);
+
+  // nhịp còn lại trong ngày: còn mấy buổi chưa ăn, mỗi buổi khoảng bao nhiêu
+  const gioNay = new Date().getHours();
+  const conBuoi = BUOI.filter(
+    (b) => b.tu >= gioNay && !nhatKy.some((m) => buoiCua(m.gio).ma === b.ma)
+  ).length;
+  const moiBuoi = conBuoi > 0 && con > 0 ? Math.round(con / conBuoi) : 0;
+
   const hnay = new Date().toLocaleDateString("vi-VN", {
     weekday: "long",
     day: "numeric",
     month: "numeric",
   });
-
-  const theoBuoi = BUOI.map((b) => ({
-    ...b,
-    mon: nhatKy.filter((m) => buoiCua(m.gio).ma === b.ma),
-  })).filter((b) => b.mon.length);
 
   const kqTong = ketQua?.mon?.length
     ? ketQua.mon.reduce(
@@ -294,26 +336,33 @@ export default function Mam() {
 
       {/* ── vòng mâm ── */}
       <div className="mam-tam">
-        <VongMam pcCalo={daTai ? pcCalo : 0} pcDam={daTai ? pcDam : 0} con={daTai ? con : mucTieu.calo} qua={qua} />
-        <div className="chu-thich">
-          <div className="ct">
-            <div className="nhan">Đã ăn</div>
-            <div className="val">
-              {tongCalo}
-              <small> / {mucTieu.calo}</small>
-            </div>
-            <span className="gach" style={{ background: qua ? "#B8402C" : "#C4952F" }} />
+        {chuoi > 1 && (
+          <div className="chuoi" title={`${chuoi} ngày ghi liên tiếp`}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2c0 4-5 5-5 10a5 5 0 0 0 10 0c0-2-1-3-2-4 0 1-1 2-2 2s-1-1-1-2c0-3 0-5 0-6z" />
+            </svg>
+            {chuoi} ngày
           </div>
-          <div className="ct">
-            <div className="nhan">Đạm</div>
-            <div className="val">
-              {tongDam}
-              <small>g / {mucTieu.protein}g</small>
-            </div>
-            <span className="gach" style={{ background: "#5E8F7E" }} />
-          </div>
+        )}
+        <VongMam
+          pcCalo={daTai ? pcCalo : 0}
+          con={daTai ? con : mucTieu.calo}
+          qua={qua}
+          daAn={tongCalo}
+          mucTieu={mucTieu.calo}
+        />
+        <div className="hang-macro">
+          <ThanhMacro ten="Đạm" an={tongDam} dich={mucTieu.protein} mau="#5E8F7E" />
+          <ThanhMacro ten="Carb" an={tongCarb} dich={dichCarb} mau="#C4952F" />
+          <ThanhMacro ten="Béo" an={tongFat} dich={dichBeo} mau="#C97B4A" />
         </div>
       </div>
+
+      {conBuoi > 0 && tongCalo > 0 && moiBuoi > 0 && (
+        <div className="nhip">
+          Còn <b>{conBuoi}</b> bữa trong hôm nay — khoảng <b>{moiBuoi} kcal</b> mỗi bữa là vừa.
+        </div>
+      )}
 
       {moHoSo ? (
         <HoSo banDau={hoSo} onXong={nhanHoSo} onHuy={() => setMoHoSo(false)} />
@@ -514,57 +563,97 @@ export default function Mam() {
         </div>
       )}
 
-      {/* ── nhật ký theo buổi ── */}
+      {/* ── khung bữa: luôn hiện đủ 4 buổi ── */}
       <div className="de-muc">
-        <span className="eyebrow">Hôm nay đã ăn</span>
+        <span className="eyebrow">Hôm nay</span>
+        {tongCalo > 0 && (
+          <span className="so" style={{ fontSize: 13, fontWeight: 700 }}>
+            {tongCalo} kcal
+          </span>
+        )}
       </div>
-      {nhatKy.length === 0 ? (
-        <div className="trong">Chưa có món nào. Chụp bữa đầu tiên đi.</div>
-      ) : (
-        <>
-          {theoBuoi.map((b) => (
-            <div className="buoi" key={b.ma}>
-              <div className="buoi-de">
-                <span className="ten">{b.ten}</span>
-                <span className="tong">{b.mon.reduce((t, m) => t + m.calo, 0)} kcal</span>
-              </div>
-              {b.mon.map((m) => (
+
+      {BUOI.map((b) => {
+        const mon = nhatKy.filter((m) => buoiCua(m.gio).ma === b.ma);
+        const tong = mon.reduce((t, m) => t + m.calo, 0);
+        const daQua = gioNay >= b.den;
+        return (
+          <div className="o-buoi" key={b.ma} data-trong={mon.length ? 0 : 1}>
+            <div className="ob-de">
+              <span className="ob-ten">{b.ten}</span>
+              {mon.length > 0 ? (
+                <span className="ob-tong so">{tong} kcal</span>
+              ) : (
+                <button
+                  className="ob-them"
+                  onClick={() => oFile.current?.click()}
+                  aria-label={"Thêm món buổi " + b.ten}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </button>
+              )}
+            </div>
+            {mon.length > 0 ? (
+              mon.map((m) => (
                 <div className="dong" key={m.id}>
-                  <span className="gio">{m.gio}</span>
+                  {m.thumb ? (
+                    <img className="thumb" src={m.thumb} alt="" />
+                  ) : (
+                    <span className="thumb trong-thumb" />
+                  )}
                   <div className="ten">
                     {m.ten}
-                    <div className="dam">{m.protein}g đạm</div>
+                    <div className="dam">
+                      {m.gio} · {m.protein}g đạm
+                    </div>
                   </div>
-                  <span className="kcal">{m.calo}</span>
-                  <button className="xoa" aria-label={"Xoá " + m.ten} onClick={() => capNhat(nhatKy.filter((x) => x.id !== m.id))}>
+                  <span className="kcal so">{m.calo}</span>
+                  <button
+                    className="xoa"
+                    aria-label={"Xoá " + m.ten}
+                    onClick={() => capNhat(nhatKy.filter((x) => x.id !== m.id))}
+                  >
                     ×
                   </button>
                 </div>
-              ))}
-            </div>
-          ))}
-
-          <div style={{ marginTop: 22 }}>
-            <div className="eyebrow" style={{ marginBottom: 8 }}>
-              Cả ngày lấy calo từ đâu
-            </div>
-            <DaiMacro p={tongDam} c={tongCarb} f={tongFat} chuThich />
+              ))
+            ) : (
+              <div className="ob-trong">{daQua ? "Bỏ qua" : "Chưa ghi"}</div>
+            )}
           </div>
-        </>
+        );
+      })}
+
+      {tongCalo > 0 && (
+        <div style={{ marginTop: 24 }}>
+          <div className="eyebrow" style={{ marginBottom: 8 }}>
+            Cả ngày lấy calo từ đâu
+          </div>
+          <DaiMacro p={tongDam} c={tongCarb} f={tongFat} chuThich />
+        </div>
       )}
 
       {/* ── tuần ── */}
       <div className="de-muc">
         <span className="eyebrow">7 ngày qua</span>
       </div>
-      <div className="tuan">
-        {tuan.map((d, i) => (
-          <div className="cot" key={d.ngay} data-nay={i === tuan.length - 1 ? 1 : 0}>
-            <div className="thanh" style={{ height: (d.calo / dinhTuan) * 100 + "%" }} />
-            <div className="thu">{d.thu}</div>
+      <div className="tuan-boc">
+        <div className="tuan">
+          <div className="vach-dich" style={{ bottom: (mucTieu.calo / dinhTuan) * 100 + "%" }}>
+            <span>mục tiêu</span>
           </div>
-        ))}
+          {tuan.map((d, i) => (
+            <div className="cot" key={d.ngay} data-nay={i === tuan.length - 1 ? 1 : 0}>
+              <div className="thanh" style={{ height: (d.calo / dinhTuan) * 100 + "%" }} />
+              <div className="thu">{d.thu}</div>
+            </div>
+          ))}
+        </div>
       </div>
+
+      {bao && <div className="bao">{bao}</div>}
 
       <div className="chan">
         Con số là ước tính từ ảnh — nước dùng, dầu mỡ và đường thường bị nhìn hụt. Thêm ảnh và mô tả thì
